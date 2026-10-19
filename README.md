@@ -20,10 +20,6 @@
 
 ---
 
-## 🖼️ Gameplay Preview
-
-![CHRONOBOOM 3D gameplay preview](assets/gameplay-preview.jpg)
-
 ## 🌌 The Mission
 
 The Chrono-Cataclysm has torn reality apart and pulled entire worlds into a timeless Singularity. You are **AETHER-MK4**, a Valkyrie Spec-Ops mecha that crash-landed in an abyss of shattered timelines. The mysterious **Chrono-Cards** drifting through the arena turn into reality-warping attacks, defenses, and mobility abilities. Their power awakens the ancient **Dreadnought**—and your survival run becomes a fight to restore the timeline.
