@@ -120,8 +120,6 @@ If the Play link does not open immediately, check the Pages deployment status an
 chronoboom-3d/
 ├── index.html                  # Complete single-file browser game
 ├── README.md                   # Project overview and setup guide
-└── assets/
-    └── gameplay-preview.jpg    # README preview image
 ```
 
 The separate 50-second gameplay explainer can be attached directly to a LinkedIn post. To keep the Git repository lightweight, the MP4 is not bundled here.
