@@ -2,7 +2,11 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#06070e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="ChronoBoom 3D - A WebGL Three.js Roguelike Deckbuilder & Action Survival Game">
     <title>CHRONOBOOM 3D // Roguelike Deckbuilder & Survival</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,6 +27,7 @@
         * {
             user-select: none;
             -webkit-user-select: none;
+            -webkit-touch-callout: none;
             box-sizing: border-box;
         }
         body, html {
@@ -30,10 +35,12 @@
             padding: 0;
             width: 100%;
             height: 100%;
+            height: 100dvh;
             overflow: hidden;
             background-color: #06070e;
             font-family: 'Rajdhani', sans-serif;
             color: #f8fafc;
+            touch-action: none;
         }
         .font-display {
             font-family: 'Orbitron', sans-serif;
@@ -42,6 +49,14 @@
             display: block;
             width: 100%;
             height: 100%;
+            touch-action: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
 
         .game-card {
@@ -50,8 +65,14 @@
             backdrop-filter: blur(12px);
             cursor: pointer;
         }
-        .game-card:hover:not(.card-disabled) {
-            transform: translateY(-28px) scale(1.12) rotate(0deg) !important;
+        @media (hover: hover) and (pointer: fine) {
+            .game-card:hover:not(.card-disabled) {
+                transform: translateY(-28px) scale(1.12) rotate(0deg) !important;
+                z-index: 50 !important;
+            }
+        }
+        .game-card:active:not(.card-disabled) {
+            transform: translateY(-16px) scale(1.06) rotate(0deg) !important;
             z-index: 50 !important;
         }
         .game-card.card-selected {
@@ -418,29 +439,48 @@
     </header>
 
     <!-- Bottom HUD: Roguelike Deckbuilder Hand & Mana Core -->
-    <footer class="absolute bottom-0 left-0 right-0 z-30 p-2 sm:p-4 pointer-events-none flex flex-col items-center">
+    <footer class="absolute bottom-0 left-0 right-0 z-30 p-1.5 sm:p-4 pointer-events-none flex flex-col items-center">
         
-        <!-- Active Status Buffs & Touch Joystick Container -->
-        <div class="max-w-7xl w-full flex items-end justify-between mb-2 px-2">
+        <!-- Top Footer Row: Touch Joystick + Active Buffs + Mobile Mana/Cycle Controls -->
+        <div class="max-w-7xl w-full flex items-end justify-between mb-1.5 sm:mb-2 px-1 sm:px-2 gap-2">
             <!-- Virtual Touch Joystick (Mobile / Tablet friendly) -->
-            <div id="joystick-zone" class="w-24 h-24 rounded-full bg-slate-900/60 border-2 border-cyan-500/40 relative pointer-events-auto flex items-center justify-center sm:hidden touch-none">
-                <div id="joystick-knob" class="w-10 h-10 rounded-full bg-cyan-400/80 shadow-lg shadow-cyan-400/50 pointer-events-none"></div>
-                <span class="absolute -top-5 text-[10px] font-display text-cyan-300 uppercase tracking-wider">MOVE</span>
+            <div id="joystick-zone" class="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-slate-900/75 border-2 border-cyan-400/50 relative pointer-events-auto flex items-center justify-center lg:hidden touch-none shadow-[0_0_20px_rgba(0,243,255,0.25)] shrink-0">
+                <div id="joystick-knob" class="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-cyan-400/90 shadow-lg shadow-cyan-400/60 pointer-events-none"></div>
+                <span class="absolute -top-3.5 text-[8px] sm:text-[9px] font-display text-cyan-300 uppercase tracking-wider font-bold">MOVE</span>
             </div>
 
             <!-- Active Buffs Pill Bar -->
-            <div id="buffs-container" class="flex flex-wrap gap-1.5 mx-auto"></div>
+            <div id="buffs-container" class="flex flex-wrap justify-center gap-1 sm:gap-1.5 mx-auto"></div>
+
+            <!-- Mobile Compact Mana, Draw, Cycle & Discard Bar (Frees 100% width for Cards below on mobile) -->
+            <div class="flex sm:hidden items-center gap-1.5 pointer-events-auto shrink-0">
+                <div class="glass-panel rounded-xl px-2 py-1 border border-cyan-400/60 flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,243,255,0.3)]">
+                    <div class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+                    <div>
+                        <div class="text-[7px] font-display uppercase text-cyan-200 leading-none">MANA</div>
+                        <div id="energy-text-mobile" class="font-display font-black text-xs text-white leading-tight">4/4</div>
+                    </div>
+                </div>
+                <button id="btn-overclock-mobile" class="btn-arcade rounded-xl bg-gradient-to-r from-rose-600 to-fuchsia-600 px-2.5 py-1.5 text-amber-200 font-display font-bold text-[10px] flex items-center gap-1 shadow-md border border-fuchsia-300/40">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span id="cycle-timer-text-mobile">CYCLE</span>
+                </button>
+                <button id="btn-pile-mobile" class="glass-panel rounded-xl px-2 py-1 border border-indigo-400/40 text-[10px] font-display font-bold text-indigo-200 flex items-center gap-1">
+                    <i class="fa-solid fa-clone text-cyan-400 text-[10px]"></i>
+                    <span id="draw-count-mobile">5</span>
+                </button>
+            </div>
         </div>
 
-        <!-- Main Card Dock -->
-        <div class="max-w-6xl w-full flex items-end justify-between gap-2 sm:gap-4">
+        <!-- Main Card Dock (100% full width on mobile so all 5-6 cards are always visible at once) -->
+        <div class="max-w-6xl w-full flex items-end justify-between gap-1 sm:gap-4">
             
-            <!-- Left: Draw Pile & Energy Orb -->
-            <div class="flex flex-col sm:flex-row items-center gap-2 pointer-events-auto">
+            <!-- Left: Draw Pile & Energy Orb (Desktop / Tablet) -->
+            <div class="hidden sm:flex items-center gap-2 pointer-events-auto shrink-0">
                 <!-- Energy / Mana Core -->
-                <div class="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-900 p-1 shadow-[0_0_25px_rgba(0,243,255,0.6)] border-2 border-cyan-300 flex flex-col items-center justify-center">
+                <div class="relative w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-900 p-1 shadow-[0_0_25px_rgba(0,243,255,0.6)] border-2 border-cyan-300 flex flex-col items-center justify-center">
                     <div class="text-[9px] font-display uppercase tracking-widest text-cyan-200">MANA</div>
-                    <div id="energy-text" class="font-display font-black text-xl sm:text-2xl text-white leading-none">4/4</div>
+                    <div id="energy-text" class="font-display font-black text-2xl text-white leading-none">4/4</div>
                     <!-- Continuous Recharge Ring Bar -->
                     <div class="w-10 h-1.5 bg-slate-950 rounded-full overflow-hidden mt-1 border border-cyan-400/40">
                         <div id="energy-regen-bar" class="h-full bg-cyan-300 transition-all duration-75" style="width: 0%;"></div>
@@ -455,28 +495,28 @@
                 </button>
             </div>
 
-            <!-- Center: 3D Fanned Card Hand -->
-            <div id="hand-container" class="flex-1 flex items-end justify-center gap-1.5 sm:gap-3 min-h-[155px] sm:min-h-[190px] pointer-events-auto px-1 overflow-x-visible">
+            <!-- Center: 3D Fanned Card Hand (All cards fit side-by-side on mobile & desktop) -->
+            <div id="hand-container" class="w-full flex-1 flex items-end justify-center gap-1 sm:gap-3 min-h-[124px] sm:min-h-[190px] pointer-events-auto px-0.5 sm:px-2 py-1 overflow-visible">
                 <!-- Cards dynamically injected here -->
             </div>
 
-            <!-- Right: Overclock Cycle Button & Discard Pile -->
-            <div class="flex flex-col sm:flex-row items-center gap-2 pointer-events-auto">
+            <!-- Right: Overclock Cycle Button & Discard Pile (Desktop / Tablet) -->
+            <div class="hidden sm:flex items-center gap-2 pointer-events-auto shrink-0">
                 <!-- Overclock / Redraw Cycle Button -->
                 <button id="btn-overclock" class="btn-arcade relative overflow-hidden rounded-xl bg-gradient-to-r from-rose-600 via-fuchsia-600 to-indigo-600 p-0.5 shadow-lg shadow-fuchsia-600/30">
                     <div class="bg-slate-950/80 hover:bg-slate-950/40 transition px-3 py-2.5 rounded-[10px] flex flex-col items-center">
-                        <div class="flex items-center gap-1 text-amber-300 font-display font-bold text-xs sm:text-sm">
+                        <div class="flex items-center gap-1 text-amber-300 font-display font-bold text-sm">
                             <i class="fa-solid fa-bolt"></i>
-                            <span>CYCLE HAND</span>
+                            <span>CYCLE</span>
                         </div>
-                        <span id="cycle-timer-text" class="text-[10px] text-slate-300 font-semibold">READY (SPACE)</span>
+                        <span id="cycle-timer-text" class="text-[10px] text-slate-300 font-semibold">READY</span>
                     </div>
                 </button>
 
                 <!-- Discard Pile -->
                 <button id="btn-discard-pile" class="glass-panel rounded-xl px-3 py-2 flex flex-col items-center border border-rose-500/30 hover:border-rose-400 transition group">
                     <i class="fa-solid fa-recycle text-rose-400 text-base group-hover:rotate-90 transition"></i>
-                    <span class="text-[10px] text-slate-400 font-bold uppercase mt-0.5">DISCARD</span>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase mt-0.5">DISC</span>
                     <span id="discard-count" class="font-display font-bold text-sm text-white">0</span>
                 </button>
             </div>
@@ -485,16 +525,16 @@
     </footer>
 
     <!-- MODAL 1: Post-Wave Card & Boom Relic Reward Draft -->
-    <div id="reward-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden flex-col items-center justify-center p-4 overflow-y-auto">
-        <div class="max-w-4xl w-full glass-panel rounded-2xl p-5 sm:p-8 border-2 border-amber-400/50 shadow-[0_0_50px_rgba(245,158,11,0.25)] text-center my-auto">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-display font-bold mb-2">
+    <div id="reward-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden flex-col items-center justify-center p-2 sm:p-4 overflow-y-auto">
+        <div class="max-w-4xl w-full glass-panel rounded-2xl p-3 sm:p-8 border-2 border-amber-400/50 shadow-[0_0_50px_rgba(245,158,11,0.25)] text-center my-auto">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] sm:text-xs font-display font-bold mb-1 sm:mb-2">
                 <i class="fa-solid fa-star"></i> WAVE CLEARED // DRAFT AUGMENTATION
             </div>
-            <h2 id="reward-modal-title" class="font-display font-black text-2xl sm:text-4xl text-white tracking-wider uppercase">CHOOSE 1 CARD FOR YOUR DECK</h2>
-            <p class="text-slate-300 text-sm sm:text-base mt-1 mb-6">Draft synergistic cards to trigger devastating 3D survival chain-reactions.</p>
+            <h2 id="reward-modal-title" class="font-display font-black text-lg sm:text-4xl text-white tracking-wider uppercase">CHOOSE 1 CARD FOR YOUR DECK</h2>
+            <p class="text-slate-300 text-xs sm:text-base mt-0.5 mb-3 sm:mb-6">Draft synergistic cards to trigger devastating 3D survival chain-reactions.</p>
 
-            <!-- 3 Reward Cards Container -->
-            <div id="reward-cards-container" class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
+            <!-- 3 Reward Cards Container (3 columns on mobile & desktop so all 3 cards are visible at once) -->
+            <div id="reward-cards-container" class="grid grid-cols-3 gap-2 sm:gap-6 mb-3 sm:mb-6">
                 <!-- Dynamically populated -->
             </div>
 
@@ -1189,7 +1229,8 @@
             particles: [],
             shockwaves: [],
             lightningArcs: [],
-            orbitalMeshes: []
+            orbitalMeshes: [],
+            castingCards3D: []
         };
 
         /**
@@ -1203,6 +1244,9 @@
         const arenaCrystalMeshes = [];
         const ARENA_RADIUS = 28;
         let TEX_LIB = null;
+        const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                          window.innerWidth < 768 ||
+                          ('ontouchstart' in window && navigator.maxTouchPoints > 0);
 
         const playerRig = {
             armorMeshes: [],
@@ -1499,6 +1543,75 @@
             corruptMap.wrapS = THREE.RepeatWrapping;
             corruptMap.wrapT = THREE.RepeatWrapping;
 
+            // 7. Intricate Cyber-Tarot Chrono-Card Back Texture
+            const cardBackCanvas = document.createElement('canvas');
+            cardBackCanvas.width = 512;
+            cardBackCanvas.height = 768;
+            const cbctx = cardBackCanvas.getContext('2d');
+
+            const cbGrad = cbctx.createLinearGradient(0, 0, 512, 768);
+            cbGrad.addColorStop(0, '#090d1e');
+            cbGrad.addColorStop(0.5, '#111836');
+            cbGrad.addColorStop(1, '#090d1e');
+            cbctx.fillStyle = cbGrad;
+            cbctx.fillRect(0, 0, 512, 768);
+
+            // Outer ornate metallic & cyan frame
+            cbctx.strokeStyle = '#00f3ff';
+            cbctx.lineWidth = 10;
+            cbctx.strokeRect(24, 24, 464, 720);
+            cbctx.strokeStyle = '#ffbe0b';
+            cbctx.lineWidth = 4;
+            cbctx.strokeRect(42, 42, 428, 684);
+
+            // Diagonal cyber circuit lattice on card back
+            cbctx.strokeStyle = 'rgba(0, 243, 255, 0.16)';
+            cbctx.lineWidth = 2;
+            for (let i = -768; i < 768; i += 48) {
+                cbctx.beginPath();
+                cbctx.moveTo(42, i);
+                cbctx.lineTo(470, i + 428);
+                cbctx.moveTo(470, i);
+                cbctx.lineTo(42, i + 428);
+                cbctx.stroke();
+            }
+
+            // Central Astrolabe Chrono-Wheel
+            cbctx.save();
+            cbctx.translate(256, 384);
+            cbctx.strokeStyle = '#00f3ff';
+            cbctx.lineWidth = 6;
+            cbctx.beginPath();
+            cbctx.arc(0, 0, 145, 0, Math.PI * 2);
+            cbctx.stroke();
+
+            cbctx.strokeStyle = '#ffbe0b';
+            cbctx.lineWidth = 4;
+            cbctx.beginPath();
+            cbctx.arc(0, 0, 108, 0, Math.PI * 2);
+            cbctx.stroke();
+
+            for (let r = 0; r < 12; r++) {
+                const ang = (r / 12) * Math.PI * 2;
+                cbctx.beginPath();
+                cbctx.moveTo(Math.cos(ang) * 65, Math.sin(ang) * 65);
+                cbctx.lineTo(Math.cos(ang) * 145, Math.sin(ang) * 145);
+                cbctx.stroke();
+            }
+
+            // Center Diamond Chrono-Core
+            cbctx.fillStyle = '#00f3ff';
+            cbctx.beginPath();
+            cbctx.moveTo(0, -58);
+            cbctx.lineTo(44, 0);
+            cbctx.lineTo(0, 58);
+            cbctx.lineTo(-44, 0);
+            cbctx.closePath();
+            cbctx.fill();
+            cbctx.restore();
+
+            const cardBackMap = new THREE.CanvasTexture(cardBackCanvas);
+
             return {
                 armorMap,
                 armorBump,
@@ -1508,8 +1621,238 @@
                 obsidianBump,
                 obsidianEmissive,
                 mossMap,
-                corruptMap
+                corruptMap,
+                cardBackMap
             };
+        }
+
+        const cardFrontTextureCache = {};
+        function getChronoCardFrontTexture(cardSpec) {
+            const key = `${cardSpec.title}_${cardSpec.colorHex}`;
+            if (cardFrontTextureCache[key]) return cardFrontTextureCache[key];
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 768;
+            const ctx = canvas.getContext('2d');
+            const hexStr = '#' + cardSpec.colorHex.toString(16).padStart(6, '0');
+
+            // 1. Dark Obsidian Card Base
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, 768);
+            bgGrad.addColorStop(0, '#0f172a');
+            bgGrad.addColorStop(0.5, '#090d16');
+            bgGrad.addColorStop(1, '#1e1b4b');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, 512, 768);
+
+            // 2. Outer Neon Card Border & Corner Chamfers
+            ctx.strokeStyle = hexStr;
+            ctx.lineWidth = 14;
+            ctx.strokeRect(18, 18, 476, 732);
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(32, 32, 448, 704);
+
+            // 3. Top Header Title Banner
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+            ctx.fillRect(46, 48, 420, 74);
+            ctx.strokeStyle = hexStr;
+            ctx.lineWidth = 4;
+            ctx.strokeRect(46, 48, 420, 74);
+
+            // Mana Cost Crystal Circle (Top-Left)
+            ctx.fillStyle = '#020617';
+            ctx.beginPath();
+            ctx.arc(88, 85, 34, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#00f3ff';
+            ctx.lineWidth = 6;
+            ctx.stroke();
+
+            ctx.fillStyle = '#00f3ff';
+            ctx.font = '900 38px Orbitron, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(cardSpec.cost ?? 2), 88, 87);
+
+            // Card Name Text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 28px Orbitron, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(cardSpec.title.toUpperCase(), 136, 87);
+
+            // 4. Center Artwork Frame Window
+            const artGrad = ctx.createRadialGradient(256, 315, 20, 256, 315, 185);
+            artGrad.addColorStop(0, hexStr);
+            artGrad.addColorStop(0.55, 'rgba(15, 23, 42, 0.9)');
+            artGrad.addColorStop(1, '#020617');
+            ctx.fillStyle = artGrad;
+            ctx.fillRect(54, 144, 404, 330);
+
+            ctx.strokeStyle = hexStr;
+            ctx.lineWidth = 5;
+            ctx.strokeRect(54, 144, 404, 330);
+
+            // Geometric Spell Sigil Artwork inside Window
+            ctx.save();
+            ctx.translate(256, 309);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.arc(0, 0, 105, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Inscribed Hexagram / Tarot Star
+            for (let s = 0; s < 2; s++) {
+                ctx.beginPath();
+                for (let i = 0; i < 3; i++) {
+                    const a = (i / 3) * Math.PI * 2 + (s * Math.PI / 3) - Math.PI / 2;
+                    const px = Math.cos(a) * 95;
+                    const py = Math.sin(a) * 95;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+
+            // Center Diamond Emblem
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(0, -45);
+            ctx.lineTo(38, 0);
+            ctx.lineTo(0, 45);
+            ctx.lineTo(-38, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            // 5. Card Type Pill Banner
+            ctx.fillStyle = hexStr;
+            ctx.fillRect(156, 454, 200, 38);
+            ctx.fillStyle = '#020617';
+            ctx.font = '900 22px Orbitron, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(cardSpec.typeLabel || 'CHRONO CARD', 256, 474);
+
+            // 6. Bottom Lore / Effect Description Box
+            ctx.fillStyle = 'rgba(2, 6, 23, 0.92)';
+            ctx.fillRect(54, 506, 404, 198);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(54, 506, 404, 198);
+
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = '700 24px Rajdhani, sans-serif';
+            const lines = cardSpec.lines || ['REALITY-WARPING ORDNANCE', 'DECODED BY AETHER-MK4', 'ARC REACTOR MATRIX'];
+            lines.forEach((line, idx) => {
+                ctx.fillText(line, 256, 560 + idx * 42);
+            });
+
+            const tex = new THREE.CanvasTexture(canvas);
+            cardFrontTextureCache[key] = tex;
+            return tex;
+        }
+
+        function create3DChronoCardMesh(cardSpec) {
+            const cardGroup = new THREE.Group();
+            const cardW = 1.65;
+            const cardH = 2.45;
+            const cardD = 0.06;
+
+            const frontTex = getChronoCardFrontTexture(cardSpec);
+            const backTex = TEX_LIB ? TEX_LIB.cardBackMap : frontTex;
+
+            const edgeMat = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                metalness: 0.9,
+                roughness: 0.2,
+                emissive: cardSpec.colorHex,
+                emissiveIntensity: 0.25
+            });
+            const frontMat = new THREE.MeshStandardMaterial({
+                map: frontTex,
+                roughness: 0.22,
+                metalness: 0.15,
+                emissive: 0xffffff,
+                emissiveMap: frontTex,
+                emissiveIntensity: 0.42
+            });
+            const backMat = new THREE.MeshStandardMaterial({
+                map: backTex,
+                roughness: 0.25,
+                metalness: 0.35,
+                emissive: 0x00f3ff,
+                emissiveMap: backTex,
+                emissiveIntensity: 0.35
+            });
+
+            // 1. Main Rectangular 3D Card Body (Box with 6 face materials: right, left, top, bottom, front, back)
+            const bodyGeo = new THREE.BoxGeometry(cardW, cardH, cardD);
+            const bodyMesh = new THREE.Mesh(bodyGeo, [
+                edgeMat, edgeMat, edgeMat, edgeMat, frontMat, backMat
+            ]);
+            cardGroup.add(bodyMesh);
+
+            // 2. Sculpted Metallic Outer Frame Rails (Clearly rectangular playing-card silhouette)
+            const railMat = new THREE.MeshStandardMaterial({
+                color: cardSpec.colorHex,
+                emissive: cardSpec.colorHex,
+                emissiveIntensity: 0.75,
+                metalness: 0.8,
+                roughness: 0.15
+            });
+
+            const vRailGeo = new THREE.BoxGeometry(0.07, cardH + 0.06, cardD + 0.03);
+            [-1, 1].forEach(dir => {
+                const vRail = new THREE.Mesh(vRailGeo, railMat);
+                vRail.position.x = dir * (cardW / 2);
+                cardGroup.add(vRail);
+            });
+
+            const hRailGeo = new THREE.BoxGeometry(cardW + 0.08, 0.07, cardD + 0.03);
+            [-1, 1].forEach(dir => {
+                const hRail = new THREE.Mesh(hRailGeo, railMat);
+                hRail.position.y = dir * (cardH / 2);
+                cardGroup.add(hRail);
+            });
+
+            // 3. Four Corner Beveled Diamond Accents
+            const cornerGeo = new THREE.OctahedronGeometry(0.09, 0);
+            cornerGeo.scale(1, 1, 0.5);
+            const cornerMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([cx, cy]) => {
+                const gem = new THREE.Mesh(cornerGeo, cornerMat);
+                gem.position.set(cx * (cardW / 2), cy * (cardH / 2), 0);
+                cardGroup.add(gem);
+            });
+
+            // 4. Flat Holographic Spell Crest hovering slightly in front of the card artwork window (Not a sphere!)
+            const holoGroup = new THREE.Group();
+            holoGroup.position.set(0, 0.22, cardD / 2 + 0.06);
+
+            const holoRingGeo = new THREE.RingGeometry(0.32, 0.38, 6);
+            const holoRingMat = new THREE.MeshBasicMaterial({
+                color: cardSpec.colorHex,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.9
+            });
+            const holoRing = new THREE.Mesh(holoRingGeo, holoRingMat);
+            holoGroup.add(holoRing);
+
+            const holoStarGeo = new THREE.RingGeometry(0.14, 0.22, 4);
+            const holoStar = new THREE.Mesh(holoStarGeo, new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide
+            }));
+            holoStar.rotation.z = Math.PI / 4;
+            holoGroup.add(holoStar);
+
+            cardGroup.add(holoGroup);
+
+            return { cardGroup, holoGroup, bodyMesh };
         }
 
         // Helper for creating custom beveled 3D armor plates (ExtrudeGeometry)
@@ -1550,9 +1893,9 @@
             scene.fog = new THREE.FogExp2(0x050711, 0.014);
 
             camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 250);
-            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer = new THREE.WebGLRenderer({ antialias: !IS_MOBILE, powerPreference: 'high-performance' });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_MOBILE ? 1.5 : 2));
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             container.appendChild(renderer.domElement);
@@ -1566,8 +1909,9 @@
             const dirLight = new THREE.DirectionalLight(0xe0f2fe, 1.6);
             dirLight.position.set(25, 45, 25);
             dirLight.castShadow = true;
-            dirLight.shadow.mapSize.width = 1024;
-            dirLight.shadow.mapSize.height = 1024;
+            const shadowRes = IS_MOBILE ? 512 : 1024;
+            dirLight.shadow.mapSize.width = shadowRes;
+            dirLight.shadow.mapSize.height = shadowRes;
             dirLight.shadow.camera.near = 10;
             dirLight.shadow.camera.far = 110;
             const d = 32;
@@ -1609,57 +1953,26 @@
                 storyIntro.warpRings.push(rMesh);
             }
 
-            // 2. Five Authentic 3D Holographic Mystery Chrono-Cards (Rectangular Card Geometry with Bevels, Emissive Borders & Floating Runes)
+            // 2. Five Rectangular 3D Holographic Chrono-Cards (Act II, Act IV & Ending Cutscene)
             storyIntro.cardMeshes = [];
-            const cardColors = [0xf43f5e, 0x00f3ff, 0xffbe0b, 0xa855f7, 0x10b981];
-            for (let i = 0; i < 5; i++) {
-                const cardHolder = new THREE.Group();
+            const cutsceneCardSpecs = [
+                { title: 'METEOR', cost: 2, typeLabel: 'ATTACK CARD', colorHex: 0xf43f5e, lines: ['48 AOE MOLTEN DMG', 'IGNITES TARGETS', 'ORBITAL STRIKE'] },
+                { title: 'VOLT ARC', cost: 1, typeLabel: 'ATTACK CARD', colorHex: 0x00f3ff, lines: ['26 CHAIN LIGHTNING', 'BOUNCES 5 HOSTILES', 'HIGH VOLTAGE'] },
+                { title: 'ORBITALS', cost: 2, typeLabel: 'POWER CARD', colorHex: 0xffbe0b, lines: ['SUMMONS VALKYRIE', 'SPINNING BLADES', 'PERMANENT BUFF'] },
+                { title: 'VOID WELL', cost: 1, typeLabel: 'SKILL CARD', colorHex: 0xa855f7, lines: ['BLACK HOLE PULL', 'GROUPS HOSTILES', 'SINGULARITY'] },
+                { title: 'OVERDRIVE', cost: 0, typeLabel: 'SKILL CARD', colorHex: 0x10b981, lines: ['+1 MANA SURGE', '+50% MOVE SPEED', 'AEGIS BARRIER'] }
+            ];
 
-                // Detailed Rectangular Card Plate (Width: 1.4, Height: 2.1, Depth: 0.08)
-                const cardGeo = new THREE.BoxGeometry(1.4, 2.1, 0.08);
-                const cardMat = new THREE.MeshStandardMaterial({
-                    color: 0x0f172a,
-                    map: TEX_LIB ? TEX_LIB.carbonMap : null,
-                    emissive: cardColors[i],
-                    emissiveIntensity: 0.35,
-                    metalness: 0.85,
-                    roughness: 0.18
+            for (let i = 0; i < cutsceneCardSpecs.length; i++) {
+                const spec = cutsceneCardSpecs[i];
+                const { cardGroup, holoGroup } = create3DChronoCardMesh(spec);
+                storyIntro.sceneGroup.add(cardGroup);
+                storyIntro.cardMeshes.push({
+                    group: cardGroup,
+                    rune: holoGroup,
+                    color: spec.colorHex,
+                    index: i
                 });
-                const cardBody = new THREE.Mesh(cardGeo, cardMat);
-                cardBody.castShadow = true;
-                cardHolder.add(cardBody);
-
-                // Glowing Neon Card Frame Border
-                const borderGeo = new THREE.EdgesGeometry(cardGeo);
-                const borderMat = new THREE.LineBasicMaterial({ color: cardColors[i], linewidth: 2 });
-                const cardBorder = new THREE.LineSegments(borderGeo, borderMat);
-                cardHolder.add(cardBorder);
-
-                // Central Floating Holographic Rune Gem / Crystal
-                const runeGeo = new THREE.OctahedronGeometry(0.32, 1);
-                const runeMat = new THREE.MeshStandardMaterial({
-                    color: cardColors[i],
-                    emissive: cardColors[i],
-                    emissiveIntensity: 1.5,
-                    roughness: 0.1
-                });
-                const rune = new THREE.Mesh(runeGeo, runeMat);
-                rune.position.z = 0.08;
-                cardHolder.add(rune);
-
-                // Upper & Lower Tactical Card Cost / Type Glyphs
-                const glyphGeo = new THREE.PlaneGeometry(0.9, 0.22);
-                const glyphMat = new THREE.MeshBasicMaterial({ color: cardColors[i], side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
-                const glyphTop = new THREE.Mesh(glyphGeo, glyphMat);
-                glyphTop.position.set(0, 0.72, 0.05);
-                cardHolder.add(glyphTop);
-
-                const glyphBot = new THREE.Mesh(glyphGeo, glyphMat);
-                glyphBot.position.set(0, -0.72, 0.05);
-                cardHolder.add(glyphBot);
-
-                storyIntro.sceneGroup.add(cardHolder);
-                storyIntro.cardMeshes.push({ group: cardHolder, rune, color: cardColors[i], index: i });
             }
 
             // 3. Dedicated 3D Dreadnought Boss Cutscene Actor (Act III, IV & Ending Cutscene)
@@ -1742,7 +2055,7 @@
             } else if (storyIntro.actIndex === 1) {
                 playerGroup.position.set(0, 0, 0);
                 playerGroup.rotation.set(0, 0, 0);
-                createExplosion3D(new THREE.Vector3(0, 1.5, 0), 0x00f3ff, 7, 20);
+                createExplosion3D(new THREE.Vector3(0, 2.2, 0), 0x00f3ff, 7, 22);
             } else if (storyIntro.actIndex === 2) {
                 playerGroup.position.set(0, 0, 7);
                 playerGroup.rotation.set(0, Math.PI, 0);
@@ -1800,6 +2113,8 @@
 
             const desiredCamPos = new THREE.Vector3();
             const desiredLookAt = new THREE.Vector3();
+            const aspect = window.innerWidth / Math.max(1, window.innerHeight);
+            const portraitZoom = aspect < 1 ? Math.min(1.85, 1.05 / aspect) : 1.0;
 
             // Choreograph each Act in 3D space
             if (storyIntro.actIndex === 0) {
@@ -1831,29 +2146,37 @@
                 }
 
                 const orbitAngle = elapsed * 0.45;
-                desiredCamPos.set(Math.sin(orbitAngle) * 11, currentY + 4.5, Math.cos(orbitAngle) * 11);
+                desiredCamPos.set(Math.sin(orbitAngle) * 11 * portraitZoom, currentY + 4.5, Math.cos(orbitAngle) * 11 * portraitZoom);
                 desiredLookAt.set(0, currentY + 2.2, 0);
 
             } else if (storyIntro.actIndex === 1) {
-                // ACT II: THE MYSTERY OF THE CARDS - 5 Holographic 3D Cards orbit AETHER-MK4 and channel energy into the Chest Arc Reactor
+                // ACT II: THE MYSTERY OF THE CARDS - 5 Rectangular 3D Chrono-Cards deal out, flip end-over-end, and channel energy into the Chest Arc Reactor
                 storyIntro.warpRings.forEach(r => { r.visible = false; });
                 storyIntro.bossActor.bossRoot.visible = false;
 
                 playerGroup.position.set(0, Math.sin(elapsed * 2.5) * 0.35, 0);
                 playerGroup.rotation.y = Math.sin(elapsed * 0.5) * 0.25;
 
-                const cardRadius = 4.2;
+                const dealProgress = Math.min(1, storyIntro.actTimer / 1.8);
+                const easeDeal = 1 - Math.pow(1 - dealProgress, 3);
+                const maxOrbitR = aspect < 1 ? 2.6 : 3.4;
+                const cardRadius = 1.0 + easeDeal * maxOrbitR;
+
                 storyIntro.cardMeshes.forEach((c, idx) => {
                     c.group.visible = true;
-                    const angle = elapsed * 1.15 + (idx / 5) * Math.PI * 2;
+                    c.group.scale.setScalar((aspect < 1 ? 0.28 : 0.35) + easeDeal * (aspect < 1 ? 0.52 : 0.65));
+
+                    const angle = elapsed * 0.85 + (idx / 5) * Math.PI * 2;
                     const cx = Math.cos(angle) * cardRadius;
                     const cz = Math.sin(angle) * cardRadius;
-                    const cy = 2.4 + Math.sin(elapsed * 3 + idx) * 0.45;
+                    const cy = 2.5 + Math.sin(elapsed * 3.2 + idx * 1.3) * 0.35;
 
                     c.group.position.set(cx, cy, cz);
-                    c.group.lookAt(0, 2.4, 0);
-                    c.rune.rotation.y = elapsed * 4;
-                    c.rune.rotation.x = elapsed * 2.5;
+                    // Face outward toward camera while performing smooth 3D tarot card flips
+                    c.group.lookAt(camera.position);
+                    c.group.rotateY(Math.sin(elapsed * 1.8 + idx) * 0.65 + (1 - easeDeal) * Math.PI * 2);
+                    c.group.rotateZ(Math.sin(elapsed * 2.2 + idx) * 0.08);
+                    c.rune.rotation.z = elapsed * 2.5;
 
                     // Occasional energy arc from the 3D Card into AETHER-MK4's Chest Reactor
                     if (Math.random() < 0.06) {
@@ -1862,8 +2185,9 @@
                 });
 
                 const camAngle = Math.sin(elapsed * 0.35) * 0.75;
-                desiredCamPos.set(Math.sin(camAngle) * 8.5, 3.6, Math.cos(camAngle) * 8.5);
-                desiredLookAt.set(0, 2.3, 0);
+                const camDist = 8.8 * portraitZoom;
+                desiredCamPos.set(Math.sin(camAngle) * camDist, 3.6, Math.cos(camAngle) * camDist);
+                desiredLookAt.set(0, 2.4, 0);
 
             } else if (storyIntro.actIndex === 2) {
                 // ACT III: THE DREADNOUGHT AWAKENS - Rises from the shattered abyss floor while volcanic boulders orbit its shoulders
@@ -1898,11 +2222,11 @@
                 }
 
                 // Dramatic low-angle camera looking past AETHER-MK4 toward the towering Dreadnought
-                desiredCamPos.set(4.5 + Math.sin(elapsed * 0.4) * 2.0, 3.2, 4.5);
+                desiredCamPos.set((4.5 + Math.sin(elapsed * 0.4) * 2.0) * portraitZoom, 3.2, 4.5 * portraitZoom);
                 desiredLookAt.set(0, 3.2, -9);
 
             } else if (storyIntro.actIndex === 3) {
-                // ACT IV: THE CHRONOBOOM PROTOCOL - 3D Cards fan out behind AETHER-MK4's wings as both titans face off
+                // ACT IV: THE CHRONOBOOM PROTOCOL - 3D Rectangular Cards fan out behind AETHER-MK4's wings like a giant poker/tarot hand
                 storyIntro.warpRings.forEach(r => { r.visible = false; });
                 storyIntro.bossActor.bossRoot.visible = true;
                 storyIntro.bossActor.bossRoot.position.set(0, 0, -9.5);
@@ -1910,26 +2234,29 @@
                 playerGroup.position.set(0, 0.4 + Math.sin(elapsed * 4) * 0.2, 7.5);
                 playerGroup.rotation.y = Math.PI;
 
-                // Fan the 5 3D Chrono-Cards like a halo arc behind AETHER-MK4
+                // Fan the 5 Rectangular 3D Chrono-Cards cleanly facing the camera (tighter spread on portrait mobile so all 5 fit!)
+                const spreadRadius = aspect < 1 ? 2.75 : 4.4;
+                const cardScale = aspect < 1 ? 0.72 : 1.0;
                 storyIntro.cardMeshes.forEach((c, idx) => {
                     c.group.visible = true;
+                    c.group.scale.setScalar(cardScale);
                     const fanIdx = idx - 2; // -2, -1, 0, 1, 2
-                    const fanAngle = fanIdx * 0.38;
-                    const cx = Math.sin(fanAngle) * 3.8;
-                    const cy = 3.5 + Math.cos(fanAngle) * 1.2 + Math.sin(elapsed * 4 + idx) * 0.15;
-                    const cz = 8.8;
+                    const fanAngle = fanIdx * 0.32;
+                    const cx = Math.sin(fanAngle) * spreadRadius;
+                    const cy = 3.8 + Math.cos(fanAngle) * 1.35 + Math.sin(elapsed * 3.5 + idx) * 0.14;
+                    const cz = 8.9 - Math.abs(fanIdx) * 0.15;
                     c.group.position.set(cx, cy, cz);
-                    c.group.rotation.set(0, Math.PI, -fanAngle * 0.6);
-                    c.rune.rotation.y = elapsed * 5;
+                    c.group.rotation.set(0, 0, -fanAngle * 0.75);
+                    c.rune.rotation.z = elapsed * 3;
                 });
 
                 if (storyIntro.bossActor.limbs && storyIntro.bossActor.limbs.floatingRocks) {
                     storyIntro.bossActor.limbs.floatingRocks.rotation.y = elapsed * 2.2;
                 }
 
-                // Sweeping wide widescreen standoff shot
-                desiredCamPos.set(11 * Math.cos(elapsed * 0.25), 5.8, 12.5);
-                desiredLookAt.set(0, 2.5, -1.0);
+                // Sweeping wide widescreen standoff shot (pulled back on portrait mobile so all 5 fanned cards stay in frame)
+                desiredCamPos.set(9.5 * Math.cos(elapsed * 0.25), 5.8, 12.5 * portraitZoom);
+                desiredLookAt.set(0, 2.8, aspect < 1 ? 3.5 : -1.0);
             }
 
             // Smooth camera interpolation
@@ -2031,6 +2358,8 @@
             const bossLimbs = storyIntro.bossActor.limbs;
             const desiredCamPos = new THREE.Vector3();
             const desiredLookAt = new THREE.Vector3();
+            const aspect = window.innerWidth / Math.max(1, window.innerHeight);
+            const portraitZoom = aspect < 1 ? Math.min(1.75, 1.05 / aspect) : 1.0;
 
             if (storyOutro.victory) {
                 // =========================================================================
@@ -2083,22 +2412,24 @@
 
                 storyIntro.cardMeshes.forEach((c, idx) => {
                     c.group.visible = true;
-                    const angle = elapsed * 2.4 + (idx / 5) * Math.PI * 2;
-                    const radius = 3.4 - smoothAscend * 0.8;
+                    c.group.scale.setScalar(aspect < 1 ? 0.75 : 0.95);
+                    const angle = elapsed * 2.0 + (idx / 5) * Math.PI * 2;
+                    const radius = (aspect < 1 ? 2.6 : 3.6) - smoothAscend * 0.8;
                     c.group.position.set(
                         Math.cos(angle) * radius,
-                        heroY + 2.2 + Math.sin(elapsed * 3 + idx) * 0.35,
+                        heroY + 2.3 + Math.sin(elapsed * 3 + idx) * 0.32,
                         5.5 + Math.sin(angle) * radius
                     );
-                    c.group.lookAt(0, heroY + 2.2, 5.5);
-                    c.rune.rotation.y = elapsed * 5;
+                    c.group.lookAt(camera.position);
+                    c.group.rotateY(Math.sin(elapsed * 2 + idx) * 0.45);
+                    c.rune.rotation.z = elapsed * 3.5;
                 });
 
                 const camAngle = elapsed * 0.55;
                 desiredCamPos.set(
-                    Math.sin(camAngle) * 10.5,
+                    Math.sin(camAngle) * 10.5 * portraitZoom,
                     Math.max(3.2, heroY + 2.5),
-                    5.5 + Math.cos(camAngle) * 10.5
+                    5.5 + Math.cos(camAngle) * 10.5 * portraitZoom
                 );
                 desiredLookAt.set(0, heroY + 2.0, 5.5);
 
@@ -2125,17 +2456,27 @@
                     playerRig.rightArm.rotation.x = smoothKneel * 0.55;
                 }
 
-                // Chrono-Cards lose altitude and lie scattered around the fallen mech
+                // Rectangular Chrono-Cards flutter down like falling playing cards and rest flat on the obsidian floor
                 storyIntro.cardMeshes.forEach((c, idx) => {
                     c.group.visible = true;
+                    c.group.scale.setScalar(aspect < 1 ? 0.72 : 0.92);
                     const angle = (idx / 5) * Math.PI * 2 + 0.4;
-                    const dropY = Math.max(0.22, (1 - smoothKneel) * 2.8 + Math.sin(idx) * 0.1);
+                    const fallProg = Math.min(1, t / (1.8 + idx * 0.25));
+                    const smoothFall = 1 - Math.pow(1 - fallProg, 2);
+                    const dropY = Math.max(0.08, (1 - smoothFall) * 3.2);
+                    const flutter = (1 - smoothFall) * Math.sin(t * 9 + idx * 2) * 0.65;
+                    const ringDist = (aspect < 1 ? 2.0 : 2.6) + smoothFall * 0.6;
+
                     c.group.position.set(
-                        Math.cos(angle) * 3.2,
+                        Math.cos(angle) * ringDist,
                         dropY,
-                        5.5 + Math.sin(angle) * 3.2
+                        5.5 + Math.sin(angle) * ringDist
                     );
-                    c.group.rotation.set(smoothKneel * (Math.PI / 2), angle, 0);
+                    c.group.rotation.set(
+                        -Math.PI / 2 * smoothFall + flutter,
+                        angle + (1 - smoothFall) * 1.5,
+                        flutter * 0.5
+                    );
                 });
 
                 // Dreadnought Boss marches triumphantly toward fallen AETHER-MK4 and raises gauntlets
@@ -2160,7 +2501,7 @@
                 }
 
                 const orbit = Math.sin(elapsed * 0.35) * 0.85;
-                desiredCamPos.set(Math.sin(orbit) * 9.5, 3.4, 5.5 + Math.cos(orbit) * 7.5);
+                desiredCamPos.set(Math.sin(orbit) * 9.5 * portraitZoom, 3.4 * portraitZoom, 5.5 + Math.cos(orbit) * 7.5 * portraitZoom);
                 desiredLookAt.set(0, 2.0, 2.5);
             }
 
@@ -3537,7 +3878,8 @@
             });
 
             // 3D Debris Particles
-            for (let i = 0; i < particleCount; i++) {
+            const actualCount = IS_MOBILE ? Math.max(6, Math.round(particleCount * 0.55)) : particleCount;
+            for (let i = 0; i < actualCount; i++) {
                 const pGeo = new THREE.BoxGeometry(0.38, 0.38, 0.38);
                 const pMat = new THREE.MeshBasicMaterial({ color: colorHex });
                 const pMesh = new THREE.Mesh(pGeo, pMat);
@@ -3607,6 +3949,31 @@
             setTimeout(() => {
                 if (el.parentNode) el.parentNode.removeChild(el);
             }, 950);
+        }
+
+        function spawnCardCast3D(def, targetPos) {
+            const colorNum = parseInt(def.color.replace('#', ''), 16) || 0x00f3ff;
+            const { cardGroup, holoGroup } = create3DChronoCardMesh({
+                title: def.name.split(' ')[0],
+                cost: def.cost,
+                typeLabel: `${def.type.toUpperCase()} CARD`,
+                colorHex: colorNum,
+                lines: ['CHRONO-DECK PROTOCOL', def.name.toUpperCase(), 'ARC REACTOR ACTIVE']
+            });
+
+            const startPos = state.player.pos.clone().add(new THREE.Vector3(0, 3.6, 0));
+            cardGroup.position.copy(startPos);
+            cardGroup.scale.setScalar(0.2);
+            scene.add(cardGroup);
+
+            state.castingCards3D.push({
+                group: cardGroup,
+                holo: holoGroup,
+                startPos,
+                targetPos: targetPos ? targetPos.clone().setY(2.8) : startPos.clone().add(new THREE.Vector3(0, 1.8, 0)),
+                age: 0,
+                duration: 0.72
+            });
         }
 
         /**
@@ -3718,6 +4085,7 @@
             // Execute Card Effect in 3D Arena
             const pPos = state.player.pos;
             const nearestEnemy = findNearestEnemy(pPos);
+            spawnCardCast3D(def, nearestEnemy ? nearestEnemy.group.position : pPos);
 
             switch (def.id) {
                 case 'meteor_strike': {
@@ -3986,30 +4354,30 @@
 
                 const cardEl = document.createElement('div');
                 const borderClass = def.type === 'attack' ? 'card-attack' : (def.type === 'skill' ? 'card-skill' : 'card-power');
-                cardEl.className = `${borderClass} rounded-2xl p-5 flex flex-col justify-between cursor-pointer hover:scale-105 transition transform text-left relative overflow-hidden`;
+                cardEl.className = `${borderClass} rounded-xl sm:rounded-2xl p-2 sm:p-5 flex flex-col justify-between cursor-pointer hover:scale-105 transition transform text-left relative overflow-hidden`;
                 cardEl.innerHTML = `
                     <div>
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="px-2.5 py-0.5 rounded-full text-xs font-display font-bold bg-slate-950/90 text-cyan-300 border border-cyan-400/40">
-                                ${def.cost} MANA
+                        <div class="flex items-center justify-between mb-1.5 sm:mb-3">
+                            <span class="px-1.5 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-xs font-display font-bold bg-slate-950/90 text-cyan-300 border border-cyan-400/40">
+                                ${def.cost}M
                             </span>
-                            <span class="text-[11px] font-display uppercase tracking-wider px-2 py-0.5 rounded bg-white/10 text-slate-200">
+                            <span class="hidden sm:inline text-[11px] font-display uppercase tracking-wider px-2 py-0.5 rounded bg-white/10 text-slate-200">
                                 ${def.type}
                             </span>
                         </div>
-                        <div class="w-14 h-14 rounded-xl bg-slate-900/90 border border-white/15 flex items-center justify-center text-2xl mb-3 mx-auto shadow-inner" style="color:${def.color}">
+                        <div class="w-8 h-8 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl bg-slate-900/90 border border-white/15 flex items-center justify-center text-base sm:text-2xl mb-1.5 sm:mb-3 mx-auto shadow-inner" style="color:${def.color}">
                             <i class="fa-solid ${def.icon}"></i>
                         </div>
-                        <h4 class="font-display font-black text-lg text-center ${isUpgraded ? 'text-amber-300' : 'text-white'} mb-2">
+                        <h4 class="font-display font-black text-[11px] sm:text-lg text-center leading-tight ${isUpgraded ? 'text-amber-300' : 'text-white'} mb-1 sm:mb-2">
                             ${def.name}${isUpgraded ? '+' : ''}
                         </h4>
-                        <p class="text-xs sm:text-sm text-slate-300 text-center leading-relaxed">
+                        <p class="text-[9px] sm:text-sm text-slate-300 text-center leading-snug sm:leading-relaxed">
                             ${def.desc(isUpgraded, totalDmg, totalShield)}
                         </p>
                     </div>
-                    <div class="mt-4 pt-2 border-t border-white/10 text-center">
-                        <span class="text-xs font-display font-bold text-emerald-400 uppercase tracking-wider">
-                            + ADD TO DECK
+                    <div class="mt-2 sm:mt-4 pt-1.5 sm:pt-2 border-t border-white/10 text-center">
+                        <span class="text-[9px] sm:text-xs font-display font-bold text-emerald-400 uppercase tracking-wider">
+                            + DRAFT
                         </span>
                     </div>
                 `;
@@ -4061,40 +4429,43 @@
             container.innerHTML = '';
 
             const total = state.hand.length;
+            const isNarrowScreen = window.innerWidth < 640;
+
             state.hand.forEach((cardInst, idx) => {
                 const { def, totalDmg, totalShield } = computeCardValues(cardInst);
                 const canAfford = state.player.energy >= def.cost;
                 const typeClass = def.type === 'attack' ? 'card-attack' : (def.type === 'skill' ? 'card-skill' : 'card-power');
 
-                // Subtle fan rotation
+                // Subtle fan rotation on both mobile and desktop
                 const mid = (total - 1) / 2;
-                const deg = (idx - mid) * 3.5;
-                const yOffset = Math.abs(idx - mid) * 4;
+                const deg = (idx - mid) * (isNarrowScreen ? 1.8 : 3.5);
+                const yOffset = Math.abs(idx - mid) * (isNarrowScreen ? 2 : 4);
 
                 const cardEl = document.createElement('div');
-                cardEl.className = `game-card ${typeClass} ${canAfford ? '' : 'card-disabled'} w-28 sm:w-36 h-40 sm:h-48 rounded-xl p-2.5 flex flex-col justify-between relative select-none shrink-0`;
+                // Fluid flex-1 width on mobile (<640px) guarantees all 5-6 cards fit side-by-side simultaneously
+                cardEl.className = `game-card ${typeClass} ${canAfford ? '' : 'card-disabled'} flex-1 min-w-0 max-w-[74px] sm:max-w-none sm:w-36 sm:flex-none h-[118px] sm:h-48 rounded-lg sm:rounded-xl p-1 sm:p-2.5 flex flex-col justify-between relative select-none`;
                 cardEl.style.transform = `translateY(${yOffset}px) rotate(${deg}deg)`;
 
                 cardEl.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <div class="w-6 h-6 rounded-full bg-slate-950 border border-cyan-400 flex items-center justify-center font-display font-black text-xs text-cyan-300 shadow">
+                    <div class="flex items-center justify-between gap-0.5">
+                        <div class="w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-slate-950 border border-cyan-400 flex items-center justify-center font-display font-black text-[9px] sm:text-xs text-cyan-300 shadow shrink-0">
                             ${def.cost}
                         </div>
-                        <span class="text-[9px] font-display uppercase px-1.5 py-0.5 rounded bg-black/40 text-slate-300">
-                            KEY ${idx + 1}
+                        <span class="text-[7px] sm:text-[9px] font-display uppercase px-1 py-0.5 rounded bg-black/40 text-slate-300 truncate">
+                            ${isNarrowScreen ? def.type.slice(0, 3) : `KEY ${idx + 1}`}
                         </span>
                     </div>
 
                     <div class="my-auto flex flex-col items-center text-center">
-                        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-slate-950/80 border border-white/10 flex items-center justify-center text-lg sm:text-xl mb-1" style="color: ${def.color}">
+                        <div class="w-6 h-6 sm:w-11 sm:h-11 rounded-md sm:rounded-lg bg-slate-950/80 border border-white/10 flex items-center justify-center text-xs sm:text-xl mb-0.5 sm:mb-1" style="color: ${def.color}">
                             <i class="fa-solid ${def.icon}"></i>
                         </div>
-                        <div class="font-display font-bold text-xs sm:text-sm leading-tight ${cardInst.upgraded ? 'text-amber-300' : 'text-white'}">
+                        <div class="font-display font-bold text-[8.5px] sm:text-sm leading-tight ${cardInst.upgraded ? 'text-amber-300' : 'text-white'} line-clamp-1">
                             ${def.name}${cardInst.upgraded ? '+' : ''}
                         </div>
                     </div>
 
-                    <div class="text-[10px] sm:text-[11px] text-slate-200 leading-tight text-center bg-slate-950/60 p-1.5 rounded-lg border border-white/5">
+                    <div class="text-[7.5px] sm:text-[11px] text-slate-200 leading-tight text-center bg-slate-950/60 p-0.5 sm:p-1.5 rounded border border-white/5 line-clamp-3">
                         ${def.desc(cardInst.upgraded, totalDmg, totalShield)}
                     </div>
                 `;
@@ -4150,7 +4521,13 @@
             document.getElementById('kills-text').textContent = `KILLS: ${state.kills}`;
 
             document.getElementById('energy-text').textContent = `${p.energy}/${p.maxEnergy}`;
+            const mobileEnergy = document.getElementById('energy-text-mobile');
+            if (mobileEnergy) mobileEnergy.textContent = `${p.energy}/${p.maxEnergy}`;
+
             document.getElementById('draw-count').textContent = state.drawPile.length;
+            const mobileDraw = document.getElementById('draw-count-mobile');
+            if (mobileDraw) mobileDraw.textContent = state.drawPile.length;
+
             document.getElementById('discard-count').textContent = state.discardPile.length;
             document.getElementById('total-deck-count').textContent = state.masterDeck.length;
 
@@ -4224,6 +4601,50 @@
                 camControl.distance = Math.max(18, Math.min(52, camControl.distance + e.deltaY * 0.02));
             }, { passive: true });
 
+            // Mobile Touch Orbit & Pinch-to-Zoom on 3D Canvas
+            let touchCamId = null;
+            let lastPinchDist = 0;
+            domEl.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    touchCamId = e.touches[0].identifier;
+                    camControl.prevX = e.touches[0].clientX;
+                    camControl.prevY = e.touches[0].clientY;
+                } else if (e.touches.length === 2) {
+                    touchCamId = null;
+                    lastPinchDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                }
+            }, { passive: true });
+
+            domEl.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && touchCamId !== null) {
+                    const t = e.touches[0];
+                    const deltaX = t.clientX - camControl.prevX;
+                    const deltaY = t.clientY - camControl.prevY;
+                    camControl.prevX = t.clientX;
+                    camControl.prevY = t.clientY;
+                    camControl.theta -= deltaX * 0.008;
+                    camControl.phi = Math.max(0.35, Math.min(1.35, camControl.phi - deltaY * 0.006));
+                } else if (e.touches.length === 2) {
+                    const dist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    if (lastPinchDist > 0) {
+                        const diff = lastPinchDist - dist;
+                        camControl.distance = Math.max(18, Math.min(52, camControl.distance + diff * 0.06));
+                    }
+                    lastPinchDist = dist;
+                }
+            }, { passive: true });
+
+            domEl.addEventListener('touchend', () => {
+                touchCamId = null;
+                lastPinchDist = 0;
+            }, { passive: true });
+
             // Mobile Touch Virtual Joystick
             const joyZone = document.getElementById('joystick-zone');
             const joyKnob = document.getElementById('joystick-knob');
@@ -4260,6 +4681,10 @@
 
             // UI Buttons
             document.getElementById('btn-overclock').addEventListener('click', cycleHandOverclock);
+            const mobileOverclockBtn = document.getElementById('btn-overclock-mobile');
+            if (mobileOverclockBtn) mobileOverclockBtn.addEventListener('click', cycleHandOverclock);
+            const mobilePileBtn = document.getElementById('btn-pile-mobile');
+            if (mobilePileBtn) mobilePileBtn.addEventListener('click', openDeckModal);
             document.getElementById('btn-story-replay').addEventListener('click', () => {
                 startStoryIntro(0);
             });
@@ -4768,11 +5193,14 @@
 
             // Cycle hand cooldown
             const cycleText = document.getElementById('cycle-timer-text');
+            const cycleTextMobile = document.getElementById('cycle-timer-text-mobile');
             if (state.cycleCooldown > 0) {
                 state.cycleCooldown = Math.max(0, state.cycleCooldown - dt);
                 cycleText.textContent = `RECHARGING (${state.cycleCooldown.toFixed(1)}s)`;
+                if (cycleTextMobile) cycleTextMobile.textContent = `${state.cycleCooldown.toFixed(1)}s`;
             } else {
                 cycleText.textContent = 'READY (SPACE)';
+                if (cycleTextMobile) cycleTextMobile.textContent = 'CYCLE';
             }
         }
 
@@ -4964,6 +5392,30 @@
                     state.lightningArcs.splice(i, 1);
                 }
             }
+
+            // Update 3D Flying Chrono-Card Cast Animations
+            for (let i = state.castingCards3D.length - 1; i >= 0; i--) {
+                const cc = state.castingCards3D[i];
+                cc.age += dt;
+                const t = Math.min(1, cc.age / cc.duration);
+
+                // Rise, spin 360 degrees showing front & back card faces, and glide toward target
+                const arcHeight = Math.sin(t * Math.PI) * 2.6;
+                cc.group.position.lerpVectors(cc.startPos, cc.targetPos, t * 0.65);
+                cc.group.position.y += arcHeight;
+
+                const scaleCurve = t < 0.25 ? (t / 0.25) * 0.95 : (t > 0.75 ? ((1 - t) / 0.25) * 0.95 : 0.95);
+                cc.group.scale.setScalar(Math.max(0.05, scaleCurve));
+
+                cc.group.lookAt(camera.position);
+                cc.group.rotateY(t * Math.PI * 2);
+                cc.holo.rotation.z += dt * 6;
+
+                if (cc.age >= cc.duration) {
+                    scene.remove(cc.group);
+                    state.castingCards3D.splice(i, 1);
+                }
+            }
         }
 
         function updateCameraOrbit() {
@@ -4995,6 +5447,7 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderHandUI();
         }
 
         // Start game loop on window onload
